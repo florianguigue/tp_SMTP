@@ -20,6 +20,8 @@
         <property name="hibernate.use_outer_join">true</property>
         <property name="transaction.factory_class">org.hibernate.transaction.JDBCTransactionFactory</property>
 
+        <property name="current_session_context_class">thread</property>
+
         <mapping class="model.Authentication"/>
         <mapping class="model.Mail"/>
     </session-factory>

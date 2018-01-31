@@ -43,9 +43,7 @@ public class Server {
             public void run() {
                 while (isRunning == true) {
                     try {
-
                         Socket client = server.accept();
-
                         System.out.println("Connexion client");
                         Thread t = new Thread(new ClientProcessor(client));
                         t.start();
@@ -54,7 +52,6 @@ public class Server {
                         e.printStackTrace();
                     }
                 }
-
                 try {
                     server.close();
                 } catch (IOException e) {

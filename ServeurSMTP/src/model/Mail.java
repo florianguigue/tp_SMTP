@@ -2,6 +2,7 @@ package model;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Timestamp;
 
 @Entity
 @Table
@@ -13,16 +14,19 @@ public class Mail implements Serializable{
     private int id;
 
     @Column
-    private int idSender;
+    private String addressSender;
 
     @Column
-    private int idReceiver;
+    private String addressReceiver;
 
     @Column
     private String subject;
 
     @Column
     private String body;
+
+    @Column
+    private Timestamp date;
 
     public int getId() {
         return id;
@@ -32,20 +36,29 @@ public class Mail implements Serializable{
         this.id = id;
     }
 
-    public int getIdSender() {
-        return idSender;
+
+    public Timestamp getDate() {
+        return date;
     }
 
-    public void setIdSender(int idSender) {
-        this.idSender = idSender;
+    public void setDate(Timestamp date) {
+        this.date = date;
     }
 
-    public int getIdReceiver() {
-        return idReceiver;
+    public String getAddressSender() {
+        return addressSender;
     }
 
-    public void setIdReceiver(int idReceiver) {
-        this.idReceiver = idReceiver;
+    public void setAddressSender(String addressSender) {
+        this.addressSender = addressSender;
+    }
+
+    public String getAddressReceiver() {
+        return addressReceiver;
+    }
+
+    public void setAddressReceiver(String addressReceiver) {
+        this.addressReceiver = addressReceiver;
     }
 
     public String getSubject() {

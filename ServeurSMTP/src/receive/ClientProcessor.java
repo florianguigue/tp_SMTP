@@ -3,13 +3,16 @@ package receive;
 import Utils.Utils;
 import hibernate.Operation;
 import model.Authentication;
+import model.Mail;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.AnnotatedType;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.List;
 
 public class ClientProcessor implements Runnable {
 
@@ -19,7 +22,8 @@ public class ClientProcessor implements Runnable {
     private boolean closeConnexion = false;
     private boolean isConnected = false;
     private boolean waitingPass = false;
-    private String user = "";
+    private String userName = "";
+    private Authentication user;
 
 
     public ClientProcessor(Socket pSock) {
@@ -44,9 +48,7 @@ public class ClientProcessor implements Runnable {
         writer.flush();
 
         while (!sock.isClosed()) {
-
             try {
-
                 //on attend la réponse
                 String response = read();
                 InetSocketAddress remote = (InetSocketAddress) sock.getRemoteSocketAddress();
@@ -104,11 +106,14 @@ public class ClientProcessor implements Runnable {
      */
     private String traitement(String response) {
         String toSend = "";
+        String commande = Utils.getArgumentOfString(0, response.toUpperCase());
+        String arg1 = Utils.getArgumentOfString(1, response.toUpperCase());
+        String arg2 = Utils.getArgumentOfString(2, response.toUpperCase());
         //NON CONNECTE
         if (isConnected == false) {
-            if (response.toUpperCase().contains("APOP")
-                    || response.toUpperCase().contains("USER")
-                    || response.toUpperCase().contains("PASS")) {
+            if (commande.equalsIgnoreCase("APOP")
+                    || commande.equalsIgnoreCase("USER")
+                    || commande.equalsIgnoreCase("PASS")) {
                 toSend = connect(response);
             } else {
                 toSend = Constante.COMMANDE_INCORRECT.value();
@@ -118,6 +123,31 @@ public class ClientProcessor implements Runnable {
             if (response.toUpperCase().contains("QUIT")) {
                 toSend = Constante.QUIT.value();
                 closeConnexion = true;
+            } else if (commande.equalsIgnoreCase("STAT")) {
+                Long nbMessage = getNbMessage();
+                Integer tailleMessage = getTailleMessages();
+                if (nbMessage != null && tailleMessage != null) {
+                    return Constante.STAT_MESSAGE.value().replace("::nbMessages", nbMessage.toString()).replace("::tailleDepot", tailleMessage.toString());
+                }
+                return Constante.SERVER_ERROR.value();
+                //commande retrieve
+            } else if (commande.equalsIgnoreCase("RETR")) {
+                String nMessage = arg1;
+                if (nMessage != null) {
+                    String message = retreive(Integer.parseInt(nMessage));
+                    if (message != null) {
+                        return Constante.RETRIEVE_MESSAGE.value().replace("::taille", String.valueOf(message.getBytes().length)).replace("::message", message);
+                    }
+                } else {
+                    return Constante.INVALID_MESSAGE.value();
+                }
+                //commande list
+            } else if (commande.equalsIgnoreCase("LIST")) {
+                Long nbMessage = getNbMessage();
+                String message = list(user);
+                if (message != null) {
+                    return Constante.LIST_MESSAGE.value().replace("::nbMessage", String.valueOf(nbMessage)).replace("::message", message);
+                }
             }
         }
         return toSend;
@@ -136,21 +166,21 @@ public class ClientProcessor implements Runnable {
         String arg2 = Utils.getArgumentOfString(2, response.toUpperCase());
         // COMMANDE APOP
         if (commande.toUpperCase().equals("APOP")) {
-            this.user = arg1;
+            this.userName = arg1;
             String password = arg2;
-            if (this.user != null && password != null) {
-                if (connectUser(user, password))
+            if (this.userName != null && password != null) {
+                if (connectUser(userName, password))
                     return Constante.ACCES_MAIL_GRANTED.value();
                 return Constante.PERMISSION_DENIED.value();
             }
             //COMMMANDE USER
         } else if (commande.toUpperCase().equals("USER")) {
-            this.user = arg1;
-            if (this.user != null && isUserExist(this.user)) {
+            this.userName = arg1;
+            if (this.userName != null && isUserExist(this.userName)) {
                 waitingPass = true;
-                return Constante.USER_VALID.value().replace("::userName", user).replace("\n", "").replace("\r", "");
+                return Constante.USER_VALID.value().replace("::userName", userName).replace("\n", "").replace("\r", "");
             } else {
-                return Constante.USER_INVALID.value().replace("::userName", user).replace("\n", "").replace("\r", "");
+                return Constante.USER_INVALID.value().replace("::userName", userName).replace("\n", "").replace("\r", "");
             }
             //COMMANDE PASS
         } else if (commande.toUpperCase().equals("PASS") && waitingPass) {
@@ -190,13 +220,14 @@ public class ClientProcessor implements Runnable {
      */
     public boolean connectUser(String user, String password) {
         if (user == null)
-            user = this.user;
+            user = this.userName;
         try {
             Operation operation = new Operation();
             Authentication authentication = operation.getAuthentication(user);
             if (authentication != null) {
                 if (authentication.getPassword().equalsIgnoreCase(password)) {
                     isConnected = true;
+                    this.user = authentication;
                     return true;
                 }
             }
@@ -205,5 +236,70 @@ public class ClientProcessor implements Runnable {
             return false;
         }
         return false;
+    }
+
+    /**
+     * @return
+     */
+    private Long getNbMessage() {
+        try {
+            Operation operation = new Operation();
+            Long nbMessage = operation.getMessageNumber(user);
+            if (nbMessage != null) {
+                return nbMessage;
+            }
+        } catch (Exception e) {
+            System.err.println(e.getStackTrace().toString());
+            return null;
+        }
+        return null;
+    }
+
+    /**
+     * @return
+     */
+    private Integer getTailleMessages() {
+        try {
+            Operation operation = new Operation();
+            Integer tailleMessage = operation.getTailleMessages(user);
+            if (tailleMessage != null) {
+                return tailleMessage;
+            }
+        } catch (Exception e) {
+            System.err.println(e.getStackTrace().toString());
+            return null;
+        }
+        return null;
+    }
+
+    public String retreive(Integer nMessage) {
+        try {
+            Operation operation = new Operation();
+            String message = operation.getMessage(nMessage, user);
+            if (message != null) {
+                return message;
+            }
+        } catch (Exception e) {
+            System.err.println(e.getStackTrace().toString());
+            return null;
+        }
+        return null;
+    }
+
+    public String list(Authentication user) {
+        try {
+            Operation operation = new Operation();
+            List<Mail> mails = operation.getUserMails(user);
+            String message = "";
+            if (mails != null) {
+                for (Mail mail : mails) {
+                    message += mail.getId() + " " + mail.getBody().getBytes().length + "\r\n";
+                }
+            }
+            return message + ".\r\n";
+        } catch (Exception e) {
+            System.err.println(e.getStackTrace().toString());
+            return null;
+        }
     }
 }
