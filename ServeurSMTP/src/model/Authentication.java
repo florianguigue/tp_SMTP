@@ -9,7 +9,6 @@ public class Authentication implements Serializable{
 
     @Id
     @Basic(optional = false)
-    @OneToOne
     @Column
     private int id;
 
@@ -26,6 +25,9 @@ public class Authentication implements Serializable{
         this.login = login;
         this.password = password;
         this.address = address;
+    }
+
+    public Authentication() {
     }
 
     public int getId() {

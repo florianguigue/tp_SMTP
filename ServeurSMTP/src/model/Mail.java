@@ -12,7 +12,6 @@ public class Mail implements Serializable{
     @Column
     private int id;
 
-    @OneToOne(mappedBy = "id")
     @Column
     private int idSender;
 
