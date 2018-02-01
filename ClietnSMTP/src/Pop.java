@@ -43,8 +43,8 @@ class Pop {
                 while (!(from.readLine()).startsWith("+OK"));
                 msg = "";
                 do {
-                    msg += from.readLine() + "\n";
-                } while (!msg.endsWith("\n.\n"));
+                    msg += from.readLine() + "\r\n";
+                } while (!msg.endsWith("\r\n.\r\n"));
                 System.out.println(msg);
             }
             socket.close();
@@ -54,7 +54,7 @@ class Pop {
     }
 
     public static void main(String args[]) {
-        Pop p = new Pop("serveur", "user", "pass");
+        Pop p = new Pop("127.0.0.1", "test1", "password");
         p.lit();
     }
 }

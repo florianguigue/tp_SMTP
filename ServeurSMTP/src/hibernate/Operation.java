@@ -102,15 +102,16 @@ public class Operation {
 
     public String getMessage(Integer nbMessage, Authentication user) {
         try {
+            session = initializer.getSessionFactory().openSession();
             String hql = "FROM Mail m WHERE m.id = :idMessage";
             Query query = session.createQuery(hql).setParameter("idMessage", nbMessage);
             Mail mail = (Mail) query.getSingleResult();
-            String returnString = "To:" + user.getAddress() + "\n\r"
-                    + "Subject:" + mail.getSubject() + "\n\r"
-                    + "Date:" + mail.getDate() + "\n\r"
-                    + "From: " + mail.getAddressSender()+ "\n\r\n\r"
-                    + mail.getBody() + "\n\r"
-                    + "." + "\n\r";
+            String returnString = "To:" + user.getAddress() + "\r\n"
+                    + "Subject:" + mail.getSubject() + "\r\n"
+                    + "Date:" + mail.getDate() + "\r\n"
+                    + "From: " + mail.getAddressSender()+ "\r\n"
+                    + mail.getBody() + "\r\n"
+                    + ".";
             return returnString;
         } catch (Exception e) {
             System.err.println(e.getStackTrace().toString());
